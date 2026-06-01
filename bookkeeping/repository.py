@@ -162,6 +162,36 @@ def list_transactions(
     return [_row_to_transaction(r) for r in rows]
 
 
+def get_transaction(txn_id: int) -> Optional[Transaction]:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT t.*, c.name AS category_name
+            FROM transactions t
+            LEFT JOIN categories c ON c.id = t.category_id
+            WHERE t.id = ?
+            """,
+            (txn_id,),
+        ).fetchone()
+    return _row_to_transaction(row) if row else None
+
+
+def update_transaction(
+    txn_id: int,
+    type_: str,
+    amount: float,
+    description: Optional[str] = None,
+    date: Optional[str] = None,
+    category_id: Optional[int] = None,
+) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            "UPDATE transactions SET type=?, amount=?, description=?, date=?, category_id=? WHERE id=?",
+            (type_, amount, description, date, category_id, txn_id),
+        )
+    return cur.rowcount > 0
+
+
 def delete_transaction(txn_id: int) -> bool:
     with get_connection() as conn:
         cur = conn.execute("DELETE FROM transactions WHERE id = ?", (txn_id,))

@@ -149,6 +149,51 @@ def add_transaction(biz_id):
                            type_=type_, currency=CURRENCY, error=None)
 
 
+@app.route("/businesses/<int:biz_id>/transactions/<int:txn_id>/edit", methods=["GET", "POST"])
+def edit_transaction(biz_id, txn_id):
+    biz = repo.get_business(biz_id)
+    businesses = repo.list_businesses()
+    txn = repo.get_transaction(txn_id)
+    if not txn:
+        return redirect(url_for("transactions", biz_id=biz_id))
+
+    if request.method == "POST":
+        type_ = request.form.get("type", "income")
+        amount_raw = request.form.get("amount", "").replace(",", "")
+        description = request.form.get("description", "").strip() or None
+        date = request.form.get("date", "")
+        category_id = request.form.get("category_id") or None
+        new_cat = request.form.get("new_category", "").strip()
+
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            categories = repo.list_categories(biz_id, txn.type)
+            return render_template("edit_transaction.html", biz=biz,
+                                   businesses=businesses, txn=txn,
+                                   categories=categories, currency=CURRENCY,
+                                   error="Please enter a valid amount greater than zero.")
+
+        if new_cat:
+            cat = repo.get_or_create_category(biz_id, new_cat, type_)
+            category_id = cat.id
+        elif category_id:
+            category_id = int(category_id)
+
+        repo.update_transaction(txn_id, type_, amount,
+                                description=description,
+                                date=date or None,
+                                category_id=category_id)
+        return redirect(url_for("transactions", biz_id=biz_id))
+
+    categories = repo.list_categories(biz_id, txn.type)
+    return render_template("edit_transaction.html", biz=biz,
+                           businesses=businesses, txn=txn,
+                           categories=categories, currency=CURRENCY, error=None)
+
+
 @app.route("/businesses/<int:biz_id>/transactions/<int:txn_id>/delete", methods=["POST"])
 def delete_transaction(biz_id, txn_id):
     repo.delete_transaction(txn_id)
