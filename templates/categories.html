@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Categories — {{ biz.name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-title">Categories</div>
+</div>
+
+<div class="card" style="max-width:520px;margin-bottom:20px;">
+  <strong style="font-size:14px;display:block;margin-bottom:14px;">Add Category</strong>
+  <form method="POST" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+    <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Category name" required>
+    </div>
+    <div class="form-group" style="min-width:130px;margin-bottom:0;">
+      <label>Type</label>
+      <select name="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+</div>
+
+<div class="card">
+  {% if cats %}
+    {% set income_cats = cats | selectattr('type', 'equalto', 'income') | list %}
+    {% set expense_cats = cats | selectattr('type', 'equalto', 'expense') | list %}
+
+    {% if income_cats %}
+    <strong style="font-size:13px;color:var(--income);display:block;margin-bottom:10px;">Income</strong>
+    <div class="cat-grid" style="margin-bottom:20px;">
+      {% for c in income_cats %}
+      <div class="cat-item">
+        <span>{{ c.name }}</span>
+        <span class="badge badge-income">income</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if expense_cats %}
+    <strong style="font-size:13px;color:var(--expense);display:block;margin-bottom:10px;">Expense</strong>
+    <div class="cat-grid">
+      {% for c in expense_cats %}
+      <div class="cat-item">
+        <span>{{ c.name }}</span>
+        <span class="badge badge-expense">expense</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">🏷️</div>
+    <h3>No categories yet</h3>
+    <p>Add a category above to organise your transactions.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

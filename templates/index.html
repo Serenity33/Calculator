@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bookkeeping — Get Started</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="main" style="margin-left:0;">
+  <div class="welcome">
+    <h1>📒 Bookkeeping</h1>
+    <p>Track income and expenses across all your businesses.</p>
+    <div class="card">
+      <form method="POST" action="{{ url_for('new_business') }}">
+        <div class="form-group">
+          <label for="name">Name your first business</label>
+          <input type="text" id="name" name="name" placeholder="e.g. Acme Ltd" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+          Get Started →
+        </button>
+      </form>
+    </div>
+  </div>
+</main>
+</body>
+</html>

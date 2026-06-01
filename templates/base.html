@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Bookkeeping{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% if biz is defined and biz %}
+<aside class="sidebar">
+  <div class="sidebar-logo">Book<span>keep</span></div>
+
+  <nav>
+    <div class="sidebar-section">Menu</div>
+    <a href="{{ url_for('dashboard', biz_id=biz.id) }}"
+       class="{{ 'active' if request.endpoint == 'dashboard' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='income') }}"
+       class="{{ 'active' if request.endpoint == 'add_transaction' and request.args.get('type') == 'income' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Income
+    </a>
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='expense') }}"
+       class="{{ 'active' if request.endpoint == 'add_transaction' and request.args.get('type') == 'expense' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Expense
+    </a>
+    <a href="{{ url_for('transactions', biz_id=biz.id) }}"
+       class="{{ 'active' if request.endpoint == 'transactions' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+      Transactions
+    </a>
+    <a href="{{ url_for('summary', biz_id=biz.id) }}"
+       class="{{ 'active' if request.endpoint == 'summary' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Summary
+    </a>
+    <a href="{{ url_for('categories', biz_id=biz.id) }}"
+       class="{{ 'active' if request.endpoint == 'categories' }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h8m-8 6h16"/></svg>
+      Categories
+    </a>
+    <a href="{{ url_for('export', biz_id=biz.id) }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </a>
+  </nav>
+
+  <div class="sidebar-biz">
+    <form method="get" action="">
+      <select class="biz-selector" onchange="window.location='/businesses/'+this.value+'/switch'">
+        {% for b in businesses %}
+        <option value="{{ b.id }}" {{ 'selected' if b.id == biz.id }}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a href="{{ url_for('new_business') }}" class="btn-new-biz">+ New Business</a>
+  </div>
+</aside>
+{% endif %}
+
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>
