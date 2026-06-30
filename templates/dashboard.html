@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ biz.name }} — Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">{{ biz.name }}</div>
+    <div class="page-subtitle">All-time overview</div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='income') }}" class="btn btn-income">+ Income</a>
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='expense') }}" class="btn btn-expense">+ Expense</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Income</div>
+    <div class="stat-value income">{{ currency }}{{ "{:,.2f}".format(summary.total_income) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Expenses</div>
+    <div class="stat-value expense">{{ currency }}{{ "{:,.2f}".format(summary.total_expense) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Net Profit / Loss</div>
+    <div class="stat-value {{ 'net-pos' if summary.net >= 0 else 'net-neg' }}">
+      {{ currency }}{{ "{:,.2f}".format(summary.net) }}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <strong style="font-size:15px;">Recent Transactions</strong>
+    <a href="{{ url_for('transactions', biz_id=biz.id) }}" class="btn btn-ghost btn-sm">View all</a>
+  </div>
+
+  {% if recent %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th style="text-align:right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in recent %}
+        <tr>
+          <td style="color:var(--muted);font-size:13px;">{{ t.date }}</td>
+          <td><span class="badge badge-{{ t.type }}">{{ t.type.capitalize() }}</span></td>
+          <td style="color:var(--muted);font-size:13px;">{{ t.category_name or '—' }}</td>
+          <td>{{ t.description or '—' }}</td>
+          <td style="text-align:right;" class="amount-{{ t.type }}">
+            {{ '+' if t.type == 'income' else '-' }}{{ currency }}{{ "{:,.2f}".format(t.amount) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📋</div>
+    <h3>No transactions yet</h3>
+    <p>Add your first income or expense to get started.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if summary.by_category %}
+<div class="card" style="margin-top:16px;">
+  <strong style="font-size:15px;display:block;margin-bottom:16px;">By Category</strong>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Type</th><th style="text-align:right;">Total</th><th>Transactions</th></tr>
+      </thead>
+      <tbody>
+        {% for c in summary.by_category %}
+        <tr>
+          <td>{{ c.name or 'Uncategorised' }}</td>
+          <td><span class="badge badge-{{ c.type }}">{{ c.type.capitalize() }}</span></td>
+          <td style="text-align:right;" class="amount-{{ c.type }}">
+            {{ currency }}{{ "{:,.2f}".format(c.total) }}
+          </td>
+          <td style="color:var(--muted);font-size:13px;">{{ c.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+  <details style="flex:1;min-width:200px;">
+    <summary style="cursor:pointer;font-size:13px;color:var(--muted);padding:8px 0;">Rename this business</summary>
+    <form method="POST" action="{{ url_for('rename_business', biz_id=biz.id) }}" style="margin-top:10px;display:flex;gap:8px;">
+      <input type="text" name="name" value="{{ biz.name }}" style="flex:1;">
+      <button type="submit" class="btn btn-ghost btn-sm">Save</button>
+    </form>
+  </details>
+
+  <details style="flex:1;min-width:200px;">
+    <summary style="cursor:pointer;font-size:13px;color:#ef4444;padding:8px 0;">Delete this business</summary>
+    <form method="POST" action="{{ url_for('delete_business', biz_id=biz.id) }}" style="margin-top:10px;">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">This will permanently delete all transactions and categories.</p>
+      <button type="submit" class="btn btn-danger btn-sm"
+              onclick="return confirm('Delete {{ biz.name }} and all its data?')">
+        Yes, delete everything
+      </button>
+    </form>
+  </details>
+</div>
+
+{% endblock %}

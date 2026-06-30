@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Summary — {{ biz.name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-title">Financial Summary</div>
+</div>
+
+<form method="GET" class="filters card card-sm" style="margin-bottom:16px;">
+  <div class="form-group">
+    <label>Period</label>
+    <select name="period" onchange="this.form.submit()">
+      <option value="all" {{ 'selected' if period == 'all' }}>All time</option>
+      <option value="month" {{ 'selected' if period == 'month' }}>This month</option>
+      <option value="year" {{ 'selected' if period == 'year' }}>This year</option>
+      <option value="custom" {{ 'selected' if period == 'custom' }}>Custom range</option>
+    </select>
+  </div>
+  {% if period == 'custom' %}
+  <div class="form-group">
+    <label>From</label>
+    <input type="date" name="date_from" value="{{ date_from or '' }}">
+  </div>
+  <div class="form-group">
+    <label>To</label>
+    <input type="date" name="date_to" value="{{ date_to or '' }}">
+  </div>
+  <div style="align-self:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+  </div>
+  {% endif %}
+</form>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Income</div>
+    <div class="stat-value income">{{ currency }}{{ "{:,.2f}".format(summary.total_income) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Expenses</div>
+    <div class="stat-value expense">{{ currency }}{{ "{:,.2f}".format(summary.total_expense) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Net {{ 'Profit' if summary.net >= 0 else 'Loss' }}</div>
+    <div class="stat-value {{ 'net-pos' if summary.net >= 0 else 'net-neg' }}">
+      {{ currency }}{{ "{:,.2f}".format(summary.net) }}
+    </div>
+  </div>
+</div>
+
+{% if summary.by_category %}
+<div class="card">
+  <strong style="font-size:15px;display:block;margin-bottom:16px;">Breakdown by Category</strong>
+  {% set max_total = summary.by_category[0].total %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Type</th><th style="text-align:right;">Amount</th><th>Count</th><th style="min-width:120px;"></th></tr>
+      </thead>
+      <tbody>
+        {% for c in summary.by_category %}
+        <tr>
+          <td><strong>{{ c.name or 'Uncategorised' }}</strong></td>
+          <td><span class="badge badge-{{ c.type }}">{{ c.type.capitalize() }}</span></td>
+          <td style="text-align:right;" class="amount-{{ c.type }}">
+            {{ currency }}{{ "{:,.2f}".format(c.total) }}
+          </td>
+          <td style="color:var(--muted);font-size:13px;">{{ c.count }}</td>
+          <td>
+            <div class="breakdown-bar">
+              <div class="breakdown-bar-fill fill-{{ c.type }}"
+                   style="width:{{ [(c.total / max_total * 100)|int, 100]|min }}%"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty">
+    <div class="empty-icon">📊</div>
+    <h3>No data for this period</h3>
+    <p>Add some transactions to see your summary.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

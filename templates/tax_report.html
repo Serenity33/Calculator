@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Tax Report — {{ biz.name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-title">Tax Report</div>
+</div>
+
+<form method="GET" class="filters card card-sm" style="margin-bottom:16px;">
+  <div class="form-group">
+    <label>Period</label>
+    <select name="period" onchange="this.form.submit()">
+      <option value="all" {{ 'selected' if period == 'all' }}>All time</option>
+      <option value="month" {{ 'selected' if period == 'month' }}>This month</option>
+      <option value="year" {{ 'selected' if period == 'year' }}>This year</option>
+      <option value="custom" {{ 'selected' if period == 'custom' }}>Custom range</option>
+    </select>
+  </div>
+  {% if period == 'custom' %}
+  <div class="form-group">
+    <label>From</label>
+    <input type="date" name="date_from" value="{{ date_from or '' }}">
+  </div>
+  <div class="form-group">
+    <label>To</label>
+    <input type="date" name="date_to" value="{{ date_to or '' }}">
+  </div>
+  <div style="align-self:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+  </div>
+  {% endif %}
+</form>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Sales</div>
+    <div class="stat-value income">{{ currency }}{{ "{:,.2f}".format(report.total_sales) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Tax Collected</div>
+    <div class="stat-value income">{{ currency }}{{ "{:,.2f}".format(report.tax_collected) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Purchases</div>
+    <div class="stat-value expense">{{ currency }}{{ "{:,.2f}".format(report.total_purchases) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Tax Paid</div>
+    <div class="stat-value expense">{{ currency }}{{ "{:,.2f}".format(report.tax_paid) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Net Tax {{ 'Owing' if report.net_tax_owing >= 0 else 'Refund' }}</div>
+    <div class="stat-value {{ 'net-pos' if report.net_tax_owing >= 0 else 'net-neg' }}">
+      {{ currency }}{{ "{:,.2f}".format(report.net_tax_owing|abs) }}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <strong style="font-size:15px;display:block;margin-bottom:16px;">Transactions with Tax</strong>
+  {% if report.lines %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th style="text-align:right;">Amount</th>
+          <th style="text-align:right;">Tax</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in report.lines %}
+        <tr>
+          <td style="color:var(--muted);font-size:13px;white-space:nowrap;">{{ t.date }}</td>
+          <td><span class="badge badge-{{ t.type }}">{{ t.type.capitalize() }}</span></td>
+          <td style="color:var(--muted);font-size:13px;">{{ t.category_name or '—' }}</td>
+          <td>{{ t.description or '—' }}</td>
+          <td style="text-align:right;white-space:nowrap;" class="amount-{{ t.type }}">
+            {{ currency }}{{ "{:,.2f}".format(t.amount) }}
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            {{ currency }}{{ "{:,.2f}".format(t.tax_amount) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">🧾</div>
+    <h3>No tax recorded for this period</h3>
+    <p>Add a tax amount when entering income or expenses to see them here.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

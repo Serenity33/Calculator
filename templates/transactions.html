@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Transactions — {{ biz.name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="page-title">Transactions</div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='income') }}" class="btn btn-income">+ Income</a>
+    <a href="{{ url_for('add_transaction', biz_id=biz.id, type='expense') }}" class="btn btn-expense">+ Expense</a>
+  </div>
+</div>
+
+<form method="GET" class="filters card card-sm" style="margin-bottom:16px;">
+  <div class="form-group">
+    <label>Type</label>
+    <select name="type" onchange="this.form.submit()">
+      <option value="">All</option>
+      <option value="income" {{ 'selected' if type_filter == 'income' }}>Income</option>
+      <option value="expense" {{ 'selected' if type_filter == 'expense' }}>Expense</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>From</label>
+    <input type="date" name="date_from" value="{{ date_from or '' }}">
+  </div>
+  <div class="form-group">
+    <label>To</label>
+    <input type="date" name="date_to" value="{{ date_to or '' }}">
+  </div>
+  <div style="align-self:flex-end;">
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <a href="{{ url_for('transactions', biz_id=biz.id) }}" class="btn btn-ghost btn-sm">Clear</a>
+  </div>
+</form>
+
+<div class="card">
+  {% if txns %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th style="text-align:right;">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in txns %}
+        <tr>
+          <td style="color:var(--muted);font-size:13px;white-space:nowrap;">{{ t.date }}</td>
+          <td><span class="badge badge-{{ t.type }}">{{ t.type.capitalize() }}</span></td>
+          <td style="color:var(--muted);font-size:13px;">{{ t.category_name or '—' }}</td>
+          <td>{{ t.description or '—' }}</td>
+          <td style="text-align:right;white-space:nowrap;" class="amount-{{ t.type }}">
+            {{ '+' if t.type == 'income' else '-' }}{{ currency }}{{ "{:,.2f}".format(t.amount) }}
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <a href="{{ url_for('edit_transaction', biz_id=biz.id, txn_id=t.id) }}"
+               class="btn btn-ghost btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('delete_transaction', biz_id=biz.id, txn_id=t.id) }}"
+                  style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Delete this transaction?')">&#10005;</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="padding-top:12px;font-size:12px;color:var(--muted);">{{ txns|length }} transaction{{ 's' if txns|length != 1 }}</div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">📋</div>
+    <h3>No transactions found</h3>
+    <p>Try changing your filters, or add a new transaction.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

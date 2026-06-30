@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}New Business{% endblock %}
+{% block content %}
+<div style="max-width:480px;">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Add New Business</div>
+    </div>
+  </div>
+  <div class="card">
+    <form method="POST">
+      <div class="form-group">
+        <label for="name">Business name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Side Hustle Co" required autofocus>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">Create Business</button>
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
