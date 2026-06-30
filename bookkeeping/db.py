@@ -37,8 +37,12 @@ def init_db() -> None:
                 category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
                 type        TEXT NOT NULL CHECK(type IN ('income', 'expense')),
                 amount      REAL NOT NULL CHECK(amount > 0),
+                tax_amount  REAL NOT NULL DEFAULT 0,
                 description TEXT,
                 date        TEXT NOT NULL DEFAULT (date('now')),
                 created_at  TEXT NOT NULL DEFAULT (datetime('now'))
             );
         """)
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(transactions)").fetchall()]
+        if "tax_amount" not in cols:
+            conn.execute("ALTER TABLE transactions ADD COLUMN tax_amount REAL NOT NULL DEFAULT 0")

@@ -79,19 +79,20 @@ def add_transaction(
     description: Optional[str] = None,
     date: Optional[str] = None,
     category_id: Optional[int] = None,
+    tax_amount: float = 0.0,
 ) -> Transaction:
     with get_connection() as conn:
         if date:
             cur = conn.execute(
-                "INSERT INTO transactions (business_id, category_id, type, amount, description, date) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (business_id, category_id, type_, amount, description, date),
+                "INSERT INTO transactions (business_id, category_id, type, amount, tax_amount, description, date) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (business_id, category_id, type_, amount, tax_amount, description, date),
             )
         else:
             cur = conn.execute(
-                "INSERT INTO transactions (business_id, category_id, type, amount, description) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (business_id, category_id, type_, amount, description),
+                "INSERT INTO transactions (business_id, category_id, type, amount, tax_amount, description) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (business_id, category_id, type_, amount, tax_amount, description),
             )
         return _fetch_transaction(conn, cur.lastrowid)
 
@@ -120,6 +121,7 @@ def _row_to_transaction(row) -> Transaction:
         description=d["description"],
         date=d["date"],
         created_at=d["created_at"],
+        tax_amount=d.get("tax_amount") or 0.0,
         category_name=d.get("category_name"),
     )
 
@@ -183,11 +185,12 @@ def update_transaction(
     description: Optional[str] = None,
     date: Optional[str] = None,
     category_id: Optional[int] = None,
+    tax_amount: float = 0.0,
 ) -> bool:
     with get_connection() as conn:
         cur = conn.execute(
-            "UPDATE transactions SET type=?, amount=?, description=?, date=?, category_id=? WHERE id=?",
-            (type_, amount, description, date, category_id, txn_id),
+            "UPDATE transactions SET type=?, amount=?, tax_amount=?, description=?, date=?, category_id=? WHERE id=?",
+            (type_, amount, tax_amount, description, date, category_id, txn_id),
         )
     return cur.rowcount > 0
 
@@ -246,4 +249,54 @@ def get_summary(
         "net": row["total_income"] - row["total_expense"],
         "transaction_count": row["transaction_count"],
         "by_category": [dict(r) for r in cat_rows],
+    }
+
+
+def get_tax_report(
+    business_id: int,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+) -> dict:
+    clauses = ["t.business_id = ?"]
+    params: list = [business_id]
+    if date_from:
+        clauses.append("t.date >= ?")
+        params.append(date_from)
+    if date_to:
+        clauses.append("t.date <= ?")
+        params.append(date_to)
+    where = " AND ".join(clauses)
+
+    with get_connection() as conn:
+        row = conn.execute(
+            f"""
+            SELECT
+                COALESCE(SUM(CASE WHEN t.type='income'  THEN t.amount ELSE 0 END), 0) AS total_sales,
+                COALESCE(SUM(CASE WHEN t.type='expense' THEN t.amount ELSE 0 END), 0) AS total_purchases,
+                COALESCE(SUM(CASE WHEN t.type='income'  THEN t.tax_amount ELSE 0 END), 0) AS tax_collected,
+                COALESCE(SUM(CASE WHEN t.type='expense' THEN t.tax_amount ELSE 0 END), 0) AS tax_paid
+            FROM transactions t
+            WHERE {where}
+            """,
+            params,
+        ).fetchone()
+
+        line_rows = conn.execute(
+            f"""
+            SELECT t.id, t.date, t.type, t.amount, t.tax_amount, t.description, c.name AS category_name
+            FROM transactions t
+            LEFT JOIN categories c ON c.id = t.category_id
+            WHERE {where} AND t.tax_amount > 0
+            ORDER BY t.date DESC, t.id DESC
+            """,
+            params,
+        ).fetchall()
+
+    return {
+        "total_sales": row["total_sales"],
+        "total_purchases": row["total_purchases"],
+        "tax_collected": row["tax_collected"],
+        "tax_paid": row["tax_paid"],
+        "net_tax_owing": row["tax_collected"] - row["tax_paid"],
+        "lines": [dict(r) for r in line_rows],
     }

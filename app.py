@@ -115,6 +115,7 @@ def add_transaction(biz_id):
     if request.method == "POST":
         type_ = request.form.get("type", "income")
         amount_raw = request.form.get("amount", "").replace(",", "")
+        tax_raw = request.form.get("tax_amount", "").replace(",", "")
         description = request.form.get("description", "").strip() or None
         date = request.form.get("date", "")
         category_id = request.form.get("category_id") or None
@@ -123,6 +124,9 @@ def add_transaction(biz_id):
         try:
             amount = float(amount_raw)
             if amount <= 0:
+                raise ValueError
+            tax_amount = float(tax_raw) if tax_raw else 0.0
+            if tax_amount < 0:
                 raise ValueError
         except ValueError:
             categories = repo.list_categories(biz_id, type_)
@@ -140,7 +144,8 @@ def add_transaction(biz_id):
         repo.add_transaction(biz_id, type_, amount,
                              description=description,
                              date=date or None,
-                             category_id=category_id)
+                             category_id=category_id,
+                             tax_amount=tax_amount)
         return redirect(url_for("transactions", biz_id=biz_id))
 
     categories = repo.list_categories(biz_id, type_)
@@ -160,6 +165,7 @@ def edit_transaction(biz_id, txn_id):
     if request.method == "POST":
         type_ = request.form.get("type", "income")
         amount_raw = request.form.get("amount", "").replace(",", "")
+        tax_raw = request.form.get("tax_amount", "").replace(",", "")
         description = request.form.get("description", "").strip() or None
         date = request.form.get("date", "")
         category_id = request.form.get("category_id") or None
@@ -168,6 +174,9 @@ def edit_transaction(biz_id, txn_id):
         try:
             amount = float(amount_raw)
             if amount <= 0:
+                raise ValueError
+            tax_amount = float(tax_raw) if tax_raw else 0.0
+            if tax_amount < 0:
                 raise ValueError
         except ValueError:
             categories = repo.list_categories(biz_id, txn.type)
@@ -185,7 +194,8 @@ def edit_transaction(biz_id, txn_id):
         repo.update_transaction(txn_id, type_, amount,
                                 description=description,
                                 date=date or None,
-                                category_id=category_id)
+                                category_id=category_id,
+                                tax_amount=tax_amount)
         return redirect(url_for("transactions", biz_id=biz_id))
 
     categories = repo.list_categories(biz_id, txn.type)
@@ -231,6 +241,37 @@ def summary(biz_id):
                            currency=CURRENCY)
 
 
+# ── Tax Report ────────────────────────────────────────────────────────────────
+
+@app.route("/businesses/<int:biz_id>/taxes")
+def tax_report(biz_id):
+    biz = repo.get_business(biz_id)
+    businesses = repo.list_businesses()
+    period = request.args.get("period", "all")
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+
+    from datetime import date as dt
+    today = dt.today()
+
+    if period == "month":
+        date_from = today.strftime("%Y-%m-01")
+        date_to = str(today)
+    elif period == "year":
+        date_from = today.strftime("%Y-01-01")
+        date_to = str(today)
+    elif period == "custom":
+        pass
+    else:
+        date_from = date_to = None
+
+    report = repo.get_tax_report(biz_id, date_from=date_from, date_to=date_to)
+    return render_template("tax_report.html", biz=biz, businesses=businesses,
+                           report=report, period=period,
+                           date_from=date_from, date_to=date_to,
+                           currency=CURRENCY)
+
+
 # ── Categories ────────────────────────────────────────────────────────────────
 
 @app.route("/businesses/<int:biz_id>/categories", methods=["GET", "POST"])
@@ -256,10 +297,10 @@ def export(biz_id):
     txns = repo.list_transactions(biz_id, limit=100_000)
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Business", "ID", "Date", "Type", "Category", "Amount", "Description"])
+    writer.writerow(["Business", "ID", "Date", "Type", "Category", "Amount", "Tax", "Description"])
     for t in txns:
         writer.writerow([biz.name, t.id, t.date, t.type,
-                         t.category_name or "", f"{t.amount:.2f}", t.description or ""])
+                         t.category_name or "", f"{t.amount:.2f}", f"{t.tax_amount:.2f}", t.description or ""])
     output.seek(0)
     filename = f"{biz.name.replace(' ', '_')}_transactions.csv"
     return send_file(io.BytesIO(output.getvalue().encode()),

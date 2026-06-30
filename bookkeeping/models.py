@@ -27,4 +27,5 @@ class Transaction:
     description: Optional[str]
     date: str
     created_at: str
+    tax_amount: float = 0.0
     category_name: Optional[str] = None
